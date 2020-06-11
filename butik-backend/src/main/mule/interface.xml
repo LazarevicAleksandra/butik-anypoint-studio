@@ -1,0 +1,277 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd 
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+<apikit:config name="config" api="butik.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus"/>
+	<flow name="butik-main">
+        <http:listener path="/api/*" config-ref="HTTP_Listener_config" outputMimeType="application/json">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body><![CDATA[#[payload]]]></http:body>
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:router config-ref="config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:BAD_REQUEST">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Bad request"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">400</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:METHOD_NOT_ALLOWED">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Method not allowed"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">405</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_ACCEPTABLE">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not acceptable"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">406</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:UNSUPPORTED_MEDIA_TYPE">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Unsupported media type"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">415</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_IMPLEMENTED">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not Implemented"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">501</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+	<flow name="butik-console">
+        <http:listener path="/console/*" config-ref="HTTP_Listener_config" outputMimeType="application/json">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body><![CDATA[#[payload]]]></http:body>
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:error-response>
+        </http:listener>
+      <apikit:console config-ref="config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd 
+http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="get:\Login">
+		<flow-ref doc:name="Login" doc:id="f887a521-15ab-4251-98ea-9cef402ffbb0" name="Login"/>
+    </flow>
+	<flow name="put:\Artikl\(artiklID)">
+		<flow-ref doc:name="UpdateArtikl" doc:id="8a2d59eb-0067-472d-b4f7-aef3bd1a67cf" name="UpdateArtikl"/>
+    </flow>
+    <flow name="put:\Kupac\(kupacID)">
+		<flow-ref doc:name="UpdateKupac" doc:id="3ca0c492-c0f7-48dc-91cf-dc5f75bd1b73" name="UpdateKupac"/>
+    </flow>
+    <flow name="put:\Marka\(markaID)">
+		<flow-ref doc:name="UpdateMarka" doc:id="c56d9a40-1c64-426e-9b11-47be4ef5b646" name="UpdateMarka"/>
+    </flow>
+    <flow name="put:\Model\(modelID)">
+		<flow-ref doc:name="UpdateModel" doc:id="82b4e734-3835-497b-9d35-04350962d775" name="UpdateModel"/>
+    </flow>
+    <flow name="put:\Porudzbina\(porudzbinaID)">
+		<flow-ref doc:name="UpdatePorudzbina" doc:id="9f775f16-eec8-4231-9a1d-5763046b07d6" name="UpdatePorudzbina"/>
+    </flow>
+    <flow name="put:\Racun\(racunID)">
+		<flow-ref doc:name="UpdateRacun" doc:id="7d29ac8f-bd8c-411e-bb1a-1eaa1fe5a087" name="UpdateRacun"/>
+    </flow>
+    <flow name="put:\Radnik\(radnikID)">
+		<flow-ref doc:name="UpdateRadnik" doc:id="30e41ff7-1c3b-4420-a6ca-06fb861be27f" name="UpdateRadnik"/>
+    </flow>
+    <flow name="put:\barkod\(barkodID)">
+		<flow-ref doc:name="UpdateBarkod" doc:id="bc3e5321-0282-488d-86fb-7057affd379c" name="UpdateBarkod"/>
+    </flow>
+    <flow name="delete:\Artikl\(artiklID)">
+		<flow-ref doc:name="DeleteArtikl" doc:id="978aa047-c548-4990-93ad-09c64b28dbbc" name="DeleteArtikl"/>
+    </flow>
+    <flow name="delete:\Kupac\(kupacID)">
+		<flow-ref doc:name="DeleteKupac" doc:id="8ef79a6b-ed63-4704-bd4c-561829f49d32" name="DeleteKupac"/>
+    </flow>
+    <flow name="delete:\Marka\(markaID)">
+		<flow-ref doc:name="DeleteMarka" doc:id="aea8bfc2-a3ab-4f38-b84d-bd943e56e194" name="DeleteMarka"/>
+    </flow>
+    <flow name="delete:\Model\(modelID)">
+		<flow-ref doc:name="DeleteModel" doc:id="041e5d2b-c1fb-4ff6-9e0e-4c11442172f4" name="DeleteModel"/>
+    </flow>
+    <flow name="delete:\Porudzbina\(porudzbinaID)">
+		<flow-ref doc:name="DeletePorudzbina" doc:id="91d0bf48-8fdc-4ced-86fe-89ae312733ca" name="DeletePorudzbina"/>
+    </flow>
+    <flow name="delete:\PorudzbinaArtikl\(porudzbinaID)">
+		<flow-ref doc:name="DeletePorudzbinaArtikl" doc:id="14a257d3-5fb3-49f1-ad63-27914b78c8aa" name="DeletePorudzbinaArtikl"/>
+    </flow>
+    <flow name="delete:\Racun\(racunID)">
+		<flow-ref doc:name="DeleteRacun" doc:id="fbe0ded9-021f-4b14-990e-8b34fb7b552e" name="DeleteRacun"/>
+    </flow>
+    <flow name="delete:\Radnik\(radnikID)">
+		<flow-ref doc:name="DeleteRadnik" doc:id="4bd2cb45-4aae-4e2e-9f35-a5d88638bf7e" name="DeleteRadnik"/>
+    </flow>
+    <flow name="delete:\barkod\(barkodID)">
+		<flow-ref doc:name="DeleteBarkod" doc:id="e0d8b55d-c273-4d4b-a32d-09f9d8f06b3c" name="DeleteBarkod"/>
+    </flow>
+    <flow name="delete:\velicina\(velicinaID)">
+		<flow-ref doc:name="DeleteVelicina" doc:id="cd801c6b-ad3e-46d1-9e74-861a11effb95" name="DeleteVelicina"/>
+    </flow>
+    <flow name="get:\Artikl">
+		<flow-ref doc:name="GetAllArtikl" doc:id="3e08e1f7-6cde-4bf6-ac6b-de583b1f0149" name="GetAllArtikl"/>
+    </flow>
+    <flow name="get:\Artikl\(artiklID)">
+		<flow-ref doc:name="GetArtikl" doc:id="492c5584-50ba-4c37-a406-9a4511904d4e" name="GetArtikl"/>
+    </flow>
+	<flow name="get:\Kupac">
+		<flow-ref doc:name="GetAllKupac" doc:id="91bf78ea-2309-4dee-8c0e-44fef61e87dc" name="GetAllKupac"/>
+    </flow>
+    <flow name="get:\Kupac\(kupacID)">
+		<flow-ref doc:name="GetKupac" doc:id="a9c2d91b-1631-42f6-98c0-c4e397a1efea" name="GetKupac"/>
+    </flow>
+    <flow name="get:\Marka">
+		<flow-ref doc:name="GetAllMarka" doc:id="b0b75d64-0e29-4636-b55c-2719bfe2e3c8" name="GetAllMarka"/>
+    </flow>
+    <flow name="get:\Marka\(markaID)">
+		<flow-ref doc:name="GetMarka" doc:id="ecc46326-697e-4500-a13e-d59ea9a6816e" name="GetMarka"/>
+    </flow>
+    <flow name="get:\Model">
+		<flow-ref doc:name="GetAllModel" doc:id="362d783a-0207-49c8-b9d8-10836d77abbf" name="GetAllModel"/>
+    </flow>
+    <flow name="get:\Model\(modelID)">
+		<flow-ref doc:name="GetModel" doc:id="d64c5b66-e522-46c2-969e-2da1900e25d6" name="GetModel"/>
+    </flow>
+    <flow name="get:\Porudzbina">
+		<flow-ref doc:name="GetAllPorudzbina" doc:id="ce7c1c79-0e1a-4cc0-9b60-4c82b86a0747" name="GetAllPorudzbina"/>
+    </flow>
+    <flow name="get:\Porudzbina\(porudzbinaID)">
+		<flow-ref doc:name="GetPorudzbina" doc:id="abb5e1a6-ac88-4f3e-a94f-5e3604b97e13" name="GetPorudzbina"/>
+    </flow>
+    <flow name="get:\PorudzbinaArtikl">
+		<flow-ref doc:name="GetAllPorudzbinaArtikl" doc:id="f8bf27d9-d7c4-4734-ad60-7766909901f3" name="GetAllPorudzbinaArtikl"/>
+    </flow>
+    <flow name="get:\PorudzbinaArtikl\(porudzbinaID)">
+		<flow-ref doc:name="GetPorudzbinaArtiklbyporudzbina" doc:id="74e26af9-ed36-4bcb-adde-e99d49171841" name="GetPorudzbinaArtiklbyporudzbina"/>
+    </flow>
+    <flow name="get:\Racun">
+		<flow-ref doc:name="GetAllRacun" doc:id="ebe4ae7d-87c6-434a-a9a8-cb4af74a78c4" name="GetAllRacun"/>
+    </flow>
+    <flow name="get:\Racun\(racunID)">
+		<flow-ref doc:name="GetRacun" doc:id="42471345-4ecf-4a21-8f01-0f3b227f1d8f" name="GetRacun"/>
+    </flow>
+    <flow name="get:\Radnik">
+		<flow-ref doc:name="GetAllRadnik" doc:id="3b02e41b-4afd-4e92-9a58-ba1a09a0a109" name="GetAllRadnik"/>
+    </flow>
+    <flow name="get:\Radnik\(radnikID)">
+		<flow-ref doc:name="GetRadnik" doc:id="fa5e0ec6-47f6-449f-9763-735834046aa3" name="GetRadnik"/>
+    </flow>
+    <flow name="get:\barkod">
+		<flow-ref doc:name="GetAllBarkod" doc:id="d81211cb-1f71-4bf1-9f26-f098cd02c4d4" name="GetAllBarkod"/>
+    </flow>
+    <flow name="get:\barkod\(barkodID)">
+		<flow-ref doc:name="GetBarkod" doc:id="ae8e2643-a7cc-453d-8305-a5eb516cb75a" name="GetBarkod"/>
+    </flow>
+    <flow name="get:\velicina">
+		<flow-ref doc:name="GetAllVelicina" doc:id="88f85d90-8b05-46df-83ed-bf983990aa7a" name="GetAllVelicina"/>
+    </flow>
+    <flow name="get:\velicina\(velicinaID)">
+		<flow-ref doc:name="GetVelicina" doc:id="b066ff42-309a-43b2-a97f-9ce4d5a7d75b" name="GetVelicina"/>
+    </flow>
+    <flow name="post:\Artikl">
+		<flow-ref doc:name="AddArtikl" doc:id="4e3c26e4-85bf-4634-84f9-e090e5527c66" name="AddArtikl"/>
+    </flow>
+    <flow name="post:\Kupac">
+		<flow-ref doc:name="AddKupac" doc:id="b62289cc-eaba-44ee-ab8e-d7e4af23eb18" name="AddKupac"/>
+    </flow>
+    <flow name="post:\Marka">
+		<flow-ref doc:name="AddMarka" doc:id="bad55426-f693-4838-b3f4-891ac1a2dc77" name="AddMarka"/>
+    </flow>
+    <flow name="post:\Model">
+		<flow-ref doc:name="AddModel" doc:id="590483b0-d71c-485a-9193-55b9acc2daae" name="AddModel"/>
+    </flow>
+    <flow name="post:\Porudzbina">
+		<flow-ref doc:name="AddPorudzbina" doc:id="0ad66ff2-fe31-412e-acbd-24abc91b76f9" name="AddPorudzbina"/>
+    </flow>
+    <flow name="post:\PorudzbinaArtikl">
+		<flow-ref doc:name="AddPorudzbinaArtikl" doc:id="ada50c03-6589-4939-a2e3-93058ee55b64" name="AddPorudzbinaArtikl"/>
+    </flow>
+    <flow name="post:\Racun">
+		<flow-ref doc:name="AddRacun" doc:id="5f2e512b-dd6f-49c7-a454-45d650431a63" name="AddRacun"/>
+    </flow>
+    <flow name="post:\Radnik">
+		<flow-ref doc:name="AddRadnik" doc:id="60040d8a-babd-439e-9a93-875cd0817f9e" name="AddRadnik"/>
+    </flow>
+    <flow name="post:\barkod">
+		<flow-ref doc:name="AddBarkod" doc:id="9b815317-26da-4271-b0c3-f5e1f0121d35" name="AddBarkod"/>
+    </flow>
+    <flow name="post:\velicina">
+		<flow-ref doc:name="AddVelicina" doc:id="b4b495b4-3283-4da9-880a-1819701c7669" name="AddVelicina"/>
+    </flow>
+	<flow name="put:\velicina\(velicinaID)" doc:id="1a036163-d20e-4d35-b928-28fbe66c49ee" >
+		<flow-ref doc:name="UpdateVelicina" doc:id="3d11fe1d-2402-4b7f-afc9-e9f908e8bfed" name="UpdateVelicina" />
+	</flow>
+</mule>

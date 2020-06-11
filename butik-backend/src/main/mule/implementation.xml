@@ -1,0 +1,1742 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd">
+	<validation:config name="Validation_Config2" doc:name="Validation Config" doc:id="d0433dad-847f-48e5-afe0-88576f989baf" i18n="#[sizeOf(payload)==0]" />
+	<flow name="Login" doc:id="666687f5-7df8-4028-8166-e2595dfafc2c" >
+		<set-variable value="#[message.attributes.headers.email]" doc:name="Set Variable" doc:id="2065a527-78fe-4ff6-af17-be3a77a83564" variableName="email" mimeType="application/java"/>
+		<set-variable value="#[message.attributes.headers.password]" doc:name="Set Variable" doc:id="7c778f7e-b57b-4357-8b77-32dbecba1ac3" variableName="password" mimeType="application/java"/>
+		<scatter-gather doc:name="Scatter-Gather" doc:id="39e2cb16-ee15-4278-8c05-c2766d564c60" >
+			<route >
+				<db:select doc:name="Select" doc:id="91f58bf2-ed26-4b8d-b578-fbf3277340e9" config-ref="Database_Config">
+					<db:sql ><![CDATA[select * from radnik where email=:email and password=:password]]></db:sql>
+					<db:input-parameters ><![CDATA[#[{'email':vars.email,
+'password':vars.password
+}]]]></db:input-parameters>
+				</db:select>
+			</route>
+			<route >
+				<db:select doc:name="Select" doc:id="d99e5ba6-ad2f-475c-b6c5-ab37fc86f614" config-ref="Database_Config">
+					<db:sql ><![CDATA[select * from kupac where email=:email and password=:password]]></db:sql>
+					<db:input-parameters ><![CDATA[#[{'email':vars.email,
+'password':vars.password
+}]]]></db:input-parameters>
+				</db:select>
+			</route>
+		</scatter-gather>
+		<choice doc:name="Choice" doc:id="fcc173d0-6474-4bb0-bf01-fa61290decf5" >
+			<when expression='#[payload."0".payload.roleID==null]'>
+				<set-variable value='#[payload."1".payload.username]' doc:name="Copy_of_Copy_of_Set Variable" doc:id="0cbe8906-2b09-4c43-83b7-a88d0824991e" variableName="username" />
+				<set-variable value='#[payload."1".payload.roleID]' doc:name="Copy_of_Copy_of_Set Variable" doc:id="95564708-7ae5-4ac4-a448-5e1d9bc6004d" variableName="roleID" />
+			</when>
+			<otherwise >
+				<set-variable value='#[payload."0".payload.username]' doc:name="Copy_of_Copy_of_Copy_of_Set Variable" doc:id="c7fd3fb9-8f78-4942-b044-9d250184d055" variableName="username" />
+				<set-variable value='#[payload."0".payload.roleID]' doc:name="Copy_of_Copy_of_Copy_of_Set Variable" doc:id="45959fe5-b804-4e9c-9a23-b908dddc22f9" variableName="roleID" />
+			</otherwise>
+		</choice>
+		<choice doc:name="Choice" doc:id="75784e9f-60d9-4602-ae61-8b48838f90eb" >
+			<when expression="#[vars.roleID==null]" >
+				<ee:transform doc:name="Transform Message" doc:id="2aa691af-124b-42ed-a6d8-d726a82b7a77" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "not valid",
+	"message": "Credentials not valid "
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<set-variable value="404" doc:name="Set Variable" doc:id="6230eecd-3f2a-40b4-bfa6-ce83ba599e66" variableName="httpStatus" />
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message" doc:id="168a2018-067c-4c1d-bcd9-a3adfec3d1d3" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	roleID: vars.roleID,
+	username: vars.username
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="DeleteArtikl" doc:id="5d55b50e-03f1-4c62-a51f-e137edfb9553" >
+		<set-variable value="#[message.attributes.uriParams.artiklID]" doc:name="Set Variable" doc:id="33136ef9-ce5a-4235-aef2-3b24f7f00de9" variableName="ID" />
+		<db:select doc:name="Select" doc:id="eb573b4d-6f8b-4adc-8852-e380ff3b86f4" config-ref="Database_Config">
+			<db:sql ><![CDATA[select * from artikl where artiklID=:artiklID]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{'artiklID':vars.ID}]]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Choice" doc:id="25c8c0f0-e2b6-42f8-acf6-2a842e049c91">
+			<when expression="#[sizeOf(payload)==0]">
+				<ee:transform doc:name="Transform Message" doc:id="7341e3b9-54de-45e4-a488-47acae073f1a" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "not found",
+	"message": "There is no artikl with given id"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<set-variable value="404" doc:name="Set Variable" doc:id="2e408393-e96b-40a2-a1ec-be6ae953b810" variableName="httpStatus"/>
+			</when>
+			<otherwise>
+				<db:delete doc:name="Delete" doc:id="54b35170-7f10-4dd1-9257-aa2cedc5a205" config-ref="Database_Config">
+			<db:sql><![CDATA[delete from artikl where artiklID=:artiklID]]></db:sql>
+			<db:input-parameters><![CDATA[#[{'artiklID':vars.ID}]]]></db:input-parameters>
+		</db:delete>
+				<ee:transform doc:name="Transform Message" doc:id="02879033-a518-4f06-be97-108d339ecd34" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "success",
+	"message": "Artikl deleted"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="DeleteKupac" doc:id="b5a02b3c-d68a-43b3-8bc5-e2e8e7caa065" >
+		<set-variable value="#[message.attributes.uriParams.kupacID]" doc:name="Set Variable" doc:id="ca50469f-a650-4979-9c9f-c1c4361e9f0e" variableName="ID" />
+		<db:select doc:name="Select" doc:id="448cb1ce-1dc8-404d-be99-0d44183b8d80" config-ref="Database_Config">
+			<db:sql><![CDATA[select * from kupac where kupacID=:kupacID]]></db:sql>
+			<db:input-parameters><![CDATA[#[{'kupacID':vars.ID}]]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Choice" doc:id="dd7a6f87-c9e4-40cb-a7f3-3bb568364aa1" >
+			<when expression="#[sizeOf(payload)==0]">
+				<ee:transform doc:name="Transform Message" doc:id="32914b9c-36f1-4478-bc64-2c3b07971dd4" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "not found",
+	"message": "There is no artikl with given id"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<set-variable value="404" doc:name="Set Variable" doc:id="b39d3f3b-910f-4047-9779-cbfcf5ac61de" variableName="httpStatus" />
+			</when>
+			<otherwise >
+				<db:delete doc:name="Delete" doc:id="b08c211c-bfe5-4935-8c01-61ab71a80fed" config-ref="Database_Config">
+			<db:sql><![CDATA[delete from kupac where kupacid=:kupacID]]></db:sql>
+			<db:input-parameters><![CDATA[#[{'kupacID':vars.ID}]]]></db:input-parameters>
+		</db:delete>
+				<ee:transform doc:name="Transform Message" doc:id="6a262fba-54cf-4d34-bcd0-dbbd981d9abd" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "success",
+	"message": "Kupac deleted"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="DeleteMarka" doc:id="dd8ba72c-7a0d-4d42-9d17-bb8a4a7e3df4" >
+		<set-variable value="#[message.attributes.uriParams.markaID]" doc:name="Set Variable" doc:id="cd283a2d-3cd0-4694-9977-311816f43142" variableName="ID" />
+		<db:select doc:name="Select" doc:id="73a15cee-2061-4cbe-9a29-7415965adbcd" config-ref="Database_Config">
+			<db:sql><![CDATA[select * from marka where markaID=:markaID]]></db:sql>
+			<db:input-parameters><![CDATA[#[{'markaID':vars.ID}]]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Choice" doc:id="386dc33b-59be-41c2-92d7-cf1dace9daaf" >
+			<when expression="#[sizeOf(payload)==0]">
+				<ee:transform doc:name="Transform Message" doc:id="b1ffb482-f432-4b9b-b5e0-1c95c6c21396" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "not found",
+	"message": "There is no marka with given id"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<set-variable value="404" doc:name="Set Variable" doc:id="ed437ac5-b325-41b8-8905-4b1a0e3f67a7" variableName="httpStatus" />
+			</when>
+			<otherwise >
+				<db:delete doc:name="Delete" doc:id="c6da375e-a6b7-4bd9-9aed-661af5e9e526" config-ref="Database_Config">
+			<db:sql><![CDATA[delete from marka where markaid=:markaID]]></db:sql>
+			<db:input-parameters><![CDATA[#[{'markaID':vars.ID}]]]></db:input-parameters>
+		</db:delete>
+				<ee:transform doc:name="Transform Message" doc:id="a4272e5c-943d-421f-9e3c-ecafa055372e">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "success",
+	"message": "Marka deleted"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="DeleteModel" doc:id="860fc033-a66d-42ee-93c2-3b33debed1cf" >
+		<set-variable value="#[message.attributes.uriParams.modelID]" doc:name="Set Variable" doc:id="0be63f6e-f4c4-4c8b-894d-8e138871ab32" variableName="ID" />
+		<db:select doc:name="Select" doc:id="73345ba1-55f8-416a-a04e-d43dfdc203ce" config-ref="Database_Config">
+			<db:sql><![CDATA[select * from model where modelID=:modelID]]></db:sql>
+			<db:input-parameters><![CDATA[#[{'modelID':vars.ID}]]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Choice" doc:id="652b1d2c-70cd-4eee-98f4-c2eb5b2e72c1" >
+			<when expression="#[sizeOf(payload)==0]">
+				<ee:transform doc:name="Transform Message" doc:id="9d791b50-8727-4800-b227-1ef3ca64b95d">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "not found",
+	"message": "There is no model with given id"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+				<set-variable value="404" doc:name="Set Variable" doc:id="bda26d99-30d2-4c30-8e22-3f77bc601d78" variableName="httpStatus" />
+			</when>
+			<otherwise >
+				<db:delete doc:name="Delete" doc:id="bcb3381e-44dc-49cf-8acb-fdd2d58fc369" config-ref="Database_Config">
+			<db:sql><![CDATA[delete from model where modelid=:modelID]]></db:sql>
+			<db:input-parameters><![CDATA[#[{'modelID':vars.ID}]]]></db:input-parameters>
+		</db:delete>
+				<ee:transform doc:name="Transform Message" doc:id="cef9a6aa-354f-4074-88bf-b8eb42baf6e4">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "success",
+	"message": "Model deleted"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="DeletePorudzbina" doc:id="0721aaeb-7206-43ac-a685-f3342210433d" >
+		<set-variable value="#[message.attributes.uriParams.porudzbinaID]" doc:name="Set Variable" doc:id="4deb7b27-b5eb-41e7-9396-1ca6170da900" variableName="ID" />
+		<db:select doc:name="Select" doc:id="b7e52c69-9eef-47ac-b69b-76d255cad0dc" config-ref="Database_Config">
+			<db:sql><![CDATA[select * from porudzbina where porudzbinaID=:porudzbinaID]]></db:sql>
+			<db:input-parameters><![CDATA[#[{'porudzbinaID':vars.ID}]]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Choice" doc:id="6fd84887-fb7d-472e-9870-2be4a32b78ec" >
+			<when expression="#[sizeOf(payload)==0]">
+				<ee:transform doc:name="Transform Message" doc:id="b3bd0cdc-76cc-4c59-b7c7-f31352a97788" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "not found",
+	"message": "There is no porudzbina with given id"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<set-variable value="404" doc:name="Set Variable" doc:id="880d1723-572d-4ed6-94c7-5e0d90f85a02" variableName="httpStatus" />
+			</when>
+			<otherwise >
+				<db:delete doc:name="Delete" doc:id="eef4f38e-2ac9-4e42-b4d0-302516c793a7" config-ref="Database_Config">
+			<db:sql><![CDATA[delete from porudzbina where porudzbinaID=:porudzbinaID]]></db:sql>
+			<db:input-parameters><![CDATA[#[{'porudzbinaID':vars.ID}]]]></db:input-parameters>
+		</db:delete>
+				<ee:transform doc:name="Transform Message" doc:id="750b9163-46e2-42aa-9140-da43eb58e8fe">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "success",
+	"message": "Porudzbina deleted"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="DeletePorudzbinaArtikl" doc:id="bd2c5658-b865-4dc2-a190-ee9af1e8ead5" >
+		<set-variable value="#[message.attributes.uriParams.porudzbinaID]" doc:name="Set Variable" doc:id="9f808d43-9344-4081-a94f-fb456aa6594d" variableName="ID" />
+		<db:select doc:name="Select" doc:id="0772c47a-cdfb-4ce1-9d4a-c822e42189d0" config-ref="Database_Config">
+			<db:sql><![CDATA[select * from porudzbinaartikl where porudzbinaID=:porudzbinaID]]></db:sql>
+			<db:input-parameters><![CDATA[#[{'porudzbinaID':vars.ID}]]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Choice" doc:id="3b789ccf-6fdd-4589-82b0-2e15cf1a6d37" >
+			<when expression="#[sizeOf(payload)==0]">
+				<ee:transform doc:name="Transform Message" doc:id="dcca5782-5c9a-4827-8890-a00c8cc602b9">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "not found",
+	"message": "There is no porudzbinaartikl with given id"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+				<set-variable value="404" doc:name="Set Variable" doc:id="e5beb135-3944-4be6-8287-eb35137b126e" variableName="httpStatus" />
+			</when>
+			<otherwise >
+				<db:delete doc:name="Delete" doc:id="96e04a5a-3a75-4030-9db6-1d0f8e91478e" config-ref="Database_Config">
+			<db:sql><![CDATA[delete from PorudzbinaArtikl where porudzbinaID=:porudzbinaID]]></db:sql>
+			<db:input-parameters><![CDATA[#[{'porudzbinaID':vars.ID}]]]></db:input-parameters>
+		</db:delete>
+				<ee:transform doc:name="Transform Message" doc:id="8240cece-313c-4c1e-b8f8-296b85ac1c36">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "success",
+	"message": "Porudzbinaartikl deleted"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="DeleteRacun" doc:id="171462e7-d809-4f50-9b05-040f97324256" >
+		<set-variable value="#[message.attributes.uriParams.racunID]" doc:name="Set Variable" doc:id="ffc5632c-f537-41fd-af47-be3d3c636fd3" variableName="ID" />
+		<db:select doc:name="Select" doc:id="63fe0155-12b5-4bd7-a850-c23d5a9e7d2b" config-ref="Database_Config">
+			<db:sql><![CDATA[select * from racun where racunID=:racunID]]></db:sql>
+			<db:input-parameters><![CDATA[#[{'racunID':vars.ID}]]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Choice" doc:id="3b939027-7dd7-4bea-9fbe-9654227affc3" >
+			<when expression="#[sizeOf(payload)==0]">
+				<ee:transform doc:name="Transform Message" doc:id="9323c2de-3f1e-445d-8094-d3818cb46290">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "not found",
+	"message": "There is no racun with given id"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+				<set-variable value="404" doc:name="Set Variable" doc:id="c25ef06f-e1f6-43ac-810c-04aab4d51cd2" variableName="httpStatus" />
+			</when>
+			<otherwise >
+				<db:delete doc:name="Delete" doc:id="b658267d-56e8-4beb-8f39-9e1bcbcf6224" config-ref="Database_Config">
+			<db:sql><![CDATA[delete from racun where racunid=:racunID]]></db:sql>
+			<db:input-parameters><![CDATA[#[{'racunID':vars.ID}]]]></db:input-parameters>
+		</db:delete>
+				<ee:transform doc:name="Transform Message" doc:id="72998c24-ea9b-448e-bef9-0d5ad44b7952">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "success",
+	"message": "Racun deleted"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="DeleteRadnik" doc:id="7ece8914-fde7-4405-9e9c-643d95d93a30" >
+		<set-variable value="#[message.attributes.uriParams.radnikID]" doc:name="Set Variable" doc:id="26c397c4-5711-4fe9-bb9d-d2bf79c336a1" variableName="ID" />
+		<db:select doc:name="Select" doc:id="ed44c4dd-def1-41e9-b911-d3fd523f015c" config-ref="Database_Config">
+			<db:sql><![CDATA[select * from radnik where radnikID=:radnikID]]></db:sql>
+			<db:input-parameters><![CDATA[#[{'radnikID':vars.ID}]]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Choice" doc:id="baf18b60-c919-4da5-a019-89702b543543" >
+			<when expression="#[sizeOf(payload)==0]">
+				<ee:transform doc:name="Transform Message" doc:id="e080138e-d8b2-49d4-916a-ad313dabc62a">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "not found",
+	"message": "There is no racun with given id"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+				<set-variable value="404" doc:name="Set Variable" doc:id="2798a985-d4e0-418a-a8c1-096a1be6b46f" variableName="httpStatus" />
+			</when>
+			<otherwise >
+				<db:delete doc:name="Delete" doc:id="3c2cd6aa-1b43-49f8-bb68-34fc97a07a59" config-ref="Database_Config">
+			<db:sql><![CDATA[delete from radnik where radnikid=:radnikID]]></db:sql>
+			<db:input-parameters><![CDATA[#[{'radnikID':vars.ID}]]]></db:input-parameters>
+		</db:delete>
+				<ee:transform doc:name="Transform Message" doc:id="97ccb6f7-4714-440f-89ee-b1b8b767141c">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "success",
+	"message": "Racun deleted"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="DeleteBarkod" doc:id="1ab08709-4aac-4b45-90a3-e51e8961c7e3" >
+		<set-variable value="#[message.attributes.uriParams.barkodID]" doc:name="Set Variable" doc:id="4652b7fd-8b19-42a5-a27c-4e8c7b9dbd96" variableName="ID" />
+		<db:select doc:name="Select" doc:id="5ad3a87d-ff55-42cc-919b-6b8a49857947" config-ref="Database_Config">
+			<db:sql><![CDATA[select * from barkod where barkodID=:barkodID]]></db:sql>
+			<db:input-parameters><![CDATA[#[{'barkodID':vars.ID}]]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Choice" doc:id="73c6fb82-8e8c-4deb-8361-06b7c2691aa6" >
+			<when expression="#[sizeOf(payload)==0]">
+				<ee:transform doc:name="Transform Message" doc:id="9f8e9e74-0440-4946-8758-0cea34991d79">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "not found",
+	"message": "There is no barkod with given id"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+				<set-variable value="404" doc:name="Set Variable" doc:id="701bcb2e-461f-4fdc-877b-7544f2d5e88f" variableName="httpStatus" />
+			</when>
+			<otherwise >
+				<db:delete doc:name="Delete" doc:id="dedf915f-8daa-42db-b0fb-2b46d9932af8" config-ref="Database_Config">
+			<db:sql><![CDATA[delete from barkod where barkodid=:barkodID]]></db:sql>
+			<db:input-parameters><![CDATA[#[{'barkodID':vars.ID}]]]></db:input-parameters>
+		</db:delete>
+				<ee:transform doc:name="Transform Message" doc:id="9ea28186-b944-47f4-8247-7f3b3e0c13bb">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "success",
+	"message": "Barkod deleted"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="DeleteVelicina" doc:id="7d9fd428-fb45-4102-ba2c-13e46cbb4fb0" >
+		<set-variable value="#[message.attributes.uriParams.velicinaID]" doc:name="Set Variable" doc:id="43b07697-4464-432e-98d8-c85629d0163b" variableName="ID" />
+		<db:select doc:name="Select" doc:id="387a5a40-f57a-4d04-82d1-a9ac7b8f3a60" config-ref="Database_Config">
+			<db:sql><![CDATA[select * from velicina where velicinaID=:velicinaID]]></db:sql>
+			<db:input-parameters><![CDATA[#[{'velicinaID':vars.ID}]]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Choice" doc:id="1b38f815-ee0a-471d-886b-b8e8d2b90d3b" >
+			<when expression="#[sizeOf(payload)==0]">
+				<ee:transform doc:name="Transform Message" doc:id="6d3475ee-5956-4c35-97df-1070b77e759f">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "not found",
+	"message": "There is no velicina with given id"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+				<set-variable value="404" doc:name="Set Variable" doc:id="61efed6b-5999-4642-a3f8-f275dfa879a1" variableName="httpStatus" />
+			</when>
+			<otherwise >
+				<db:delete doc:name="Delete" doc:id="b705181a-38e4-4488-9d42-3b63c65d7aec" config-ref="Database_Config">
+			<db:sql><![CDATA[delete from velicina where velicinaid=:velicinaID]]></db:sql>
+			<db:input-parameters><![CDATA[#[{'velicinaID':vars.ID}]]]></db:input-parameters>
+		</db:delete>
+				<ee:transform doc:name="Transform Message" doc:id="b386c032-e8aa-4707-9895-64c1a7ee13e2">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "success",
+	"message": "Velicina deleted"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="GetAllArtikl" doc:id="be17d0d6-0c1a-4274-a160-2a3c785c94fd" >
+		<db:select doc:name="Select" doc:id="eac4d419-5cd6-49af-b32b-05b1300ee5d0" config-ref="Database_Config">
+			<db:sql >select * from Artikl</db:sql>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="1bee642c-64f7-4dd6-ac47-c81cfb4928fa" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	velicinaID: payload01.velicinaID,
+	barKodID: payload01.barKodID,
+	modelID: payload01.modelID,
+	artiklID: payload01.artiklID,
+	dostupno: payload01.dostupno,
+	markaID: payload01.markaID,
+	tip: payload01.tip,
+	cena: payload01.cena
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="GetAllKupac" doc:id="036977fe-0999-4323-bc91-e79369c03a6a">
+		<db:select doc:name="Select" doc:id="c9447316-cd64-4eb7-afb0-0aa791c5ab96" config-ref="Database_Config">
+			<db:sql>select * from kupac</db:sql>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="a5cf59b4-b4ff-40e1-9526-84903f0ef1e2">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	ime: payload01.ime,
+	prezime: payload01.prezime,
+	password: payload01.password,
+	roleID: payload01.roleID,
+	brojTelefona: payload01.brojTelefona,
+	adresa: payload01.adresa,
+	postanskiBroj: payload01.postanskiBroj as String,
+	kupacID: payload01.kupacID,
+	grad: payload01.grad,
+	email: payload01.email,
+	username: payload01.username
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="GetAllMarka" doc:id="0d5ecc58-55e2-4374-9997-9d5027bec0fe">
+		<db:select doc:name="Select" doc:id="ed4436df-9100-48bf-8665-3f44ef2e115c" config-ref="Database_Config">
+			<db:sql>select * from marka</db:sql>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="4f8c9542-bb8a-4b59-9f9f-74f2a8edd153">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	naziv: payload01.naziv,
+	markaID: payload01.markaID
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="GetAllModel" doc:id="08150fac-6af0-47a0-99d2-c84a83d0a580">
+		<db:select doc:name="Select" doc:id="28d5b77b-9ac7-4e04-8b69-5e31c58c5296" config-ref="Database_Config">
+			<db:sql>select * from model</db:sql>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="0f598f55-896e-4212-9238-4aa24b01a2f3">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	modelID: payload01.modelID,
+	naziv: payload01.naziv,
+	opis: payload01.opis default ""
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="GetAllPorudzbina" doc:id="300e9298-dd6f-4824-9fef-a199e4ec204c">
+		<db:select doc:name="Select" doc:id="1a105510-7bad-4ce6-a61a-9a05af9f2298" config-ref="Database_Config">
+			<db:sql>select * from porudzbina</db:sql>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="b33aca4b-f602-4746-a174-ed87d0a0fa0e">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	datum: payload01.datumIsporuke as String,
+	datumPorudzbine: payload01.datumPorudzbine as String,
+	stanje: payload01.stanje,
+	kupacID: payload01.kupacID,
+	porudzbinaID: payload01.porudzbinaID,
+	brojZaPracenje: payload01.brojZaPracenje
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="GetAllRacun" doc:id="0138ef7b-02f2-44e7-a7bf-8553c8024cf8">
+		<db:select doc:name="Select" doc:id="57421c81-d918-4853-8c48-cc9476a51715" config-ref="Database_Config">
+			<db:sql>select * from racun</db:sql>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="7776686e-0506-4a85-8d9a-365ce875ab7e">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	suma: payload01.suma,
+	datum: payload01.datum as String,
+	radnikID: payload01.radnikID,
+	porudzbinaID: payload01.porudzbinaID,
+	racunID: payload01.racunID
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="GetAllRadnik" doc:id="8b3795e3-d77f-4575-af6c-0e945f3b84e3">
+		<db:select doc:name="Select" doc:id="250f9bac-1d2d-4da6-b375-06dd71604324" config-ref="Database_Config">
+			<db:sql>select * from radnik</db:sql>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="a6e8063c-a2e8-4c7c-95e8-dc13aac6df6b">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	radnikID: payload01.radnikID,
+	password: payload01.password,
+	roleID: payload01.roleID,
+	brojLicneKarte: payload01.brojLicneKarte,
+	email: payload01.email,
+	username: payload01.username
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="GetAllBarkod" doc:id="e67ac204-8a0d-4d11-b276-f70a52de68ef">
+		<db:select doc:name="Select" doc:id="383092a4-e659-4573-9de8-b92e0f8b8ba8" config-ref="Database_Config">
+			<db:sql>select * from barkod</db:sql>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="0c759fb7-665d-49d7-a2e8-d59df13597a2">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	barKodID: payload01.barKodID,
+	brojBarKoda: payload01.brojBarKoda
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="GetAllVelicina" doc:id="dc1d094b-e739-4bce-86c0-2cb172c991cd">
+		<db:select doc:name="Select" doc:id="aea35d31-f90c-43d3-a413-4eba443f19d1" config-ref="Database_Config">
+			<db:sql>select * from velicina</db:sql>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="d9e3a1a1-27fb-48c2-a6a5-b96bb238f548">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	velicinaID: payload01.velicinaID,
+	naziv: payload01.naziv,
+	oznaka: payload01.oznaka,
+	broj: payload01.broj,
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="GetAllPorudzbinaArtikl" doc:id="ae443d80-09ea-450b-a74c-b7ddc6862811">
+		<db:select doc:name="Select" doc:id="d554b88f-fc2f-4a79-b315-145e46779944" config-ref="Database_Config">
+			<db:sql>select * from porudzbinaartikl</db:sql>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="6f8059ce-6c75-4681-8b96-181eb711dc1b">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	artiklID: payload01.artiklID,
+	kolicina: payload01.kolicina,
+	porudzbinaID: payload01.porudzbinaID
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="GetArtikl" doc:id="1daba02f-c5f7-4316-8712-25722c55f947" >
+		<set-variable value="#[message.attributes.uriParams.artiklID]" doc:name="Set Variable" doc:id="c549c323-e809-44d1-96ca-741f092c8e7d" variableName="ID" />
+		<db:select doc:name="Select" doc:id="5a4ad7ff-31e9-44f1-9305-bfee9e5f4d7d" config-ref="Database_Config">
+			<db:sql>select * from artikl where artiklID=:artiklID</db:sql>
+			<db:input-parameters><![CDATA[#[{'artiklID':vars.ID}]]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Choice" doc:id="166d274b-28be-4974-816c-d20ca736789a" >
+			<when expression="#[sizeOf(payload)==0]">
+				<ee:transform doc:name="Transform Message" doc:id="7fa679c9-60e9-4107-8b2e-4ee7f9e82507" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "not found",
+	"message": "There is no artikl with given id"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<set-variable value="404" doc:name="Set Variable" doc:id="6c5e4ae7-d589-4a4e-8695-85b28ba37a6e" variableName="httpStatus" />
+			</when>
+			<otherwise >
+				<db:select doc:name="Select" doc:id="df1f201c-2146-4b59-9ac6-5e02d3298218" config-ref="Database_Config">
+			<db:sql>select * from artikl where artiklid=:artiklID</db:sql>
+			<db:input-parameters><![CDATA[#[{'artiklID':vars.ID}]]]></db:input-parameters>
+		</db:select>
+				<ee:transform doc:name="Transform Message" doc:id="882afa05-eed9-4a4a-b779-8b80ae50e2a3" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	velicinaID: payload01.velicinaID,
+	barKodID: payload01.barKodID,
+	modelID: payload01.modelID,
+	artiklID: payload01.artiklID,
+	dostupno: payload01.dostupno,
+	markaID: payload01.markaID,
+	tip: payload01.tip,
+	cena: payload01.cena
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="GetKupac" doc:id="0f5bcdaf-c8cb-4ff6-a530-b37a9cf09e7e" >
+		<set-variable value="#[message.attributes.uriParams.kupacID]" doc:name="Set Variable" doc:id="a7396cb3-0abe-42de-92a7-e6b5f48f77d3" variableName="ID" />
+		<db:select doc:name="Select" doc:id="57867e40-d347-4585-a415-eae344e7be4b" config-ref="Database_Config">
+			<db:sql>select * from kupac where kupacID=:kupacID</db:sql>
+			<db:input-parameters><![CDATA[#[{'kupacID':vars.ID}]]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Choice" doc:id="ea1cc468-df16-494f-82c0-83213f7df4ab" >
+			<when expression="#[sizeOf(payload)==0]">
+				<ee:transform doc:name="Transform Message" doc:id="333cc116-3d67-4455-8443-eb10bbfc407d" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "not found",
+	"message": "There is no kupac with given id"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<set-variable value="404" doc:name="Set Variable" doc:id="81c41184-a1bf-4e86-b03b-06d1508d83c2" variableName="httpStatus" />
+			</when>
+			<otherwise >
+				<db:select doc:name="Select" doc:id="710b1cc0-edf8-4c14-95c6-ad9bcd994b1a" config-ref="Database_Config">
+			<db:sql>select * from kupac where kupacid=:kupacID</db:sql>
+			<db:input-parameters><![CDATA[#[{'kupacID': vars.ID}]]]></db:input-parameters>
+		</db:select>
+				<ee:transform doc:name="Transform Message" doc:id="3d8f8a4c-c565-4c78-9b5e-a6f138ab0fe9">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	ime: payload01.ime,
+	prezime: payload01.prezime,
+	password: payload01.password,
+	roleID: payload01.roleID,
+	brojTelefona: payload01.brojTelefona,
+	adresa: payload01.adresa,
+	postanskiBroj: payload01.postanskiBroj as String,
+	kupacID: payload01.kupacID,
+	grad: payload01.grad,
+	email: payload01.email,
+	username: payload01.username
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="GetMarka" doc:id="bfcffcbf-550a-4bf8-97eb-b87827e617b5" >
+		<set-variable value="#[message.attributes.uriParams.markaID]" doc:name="Set Variable" doc:id="0e50c4d6-13a6-4015-b2f3-84ea6110ad6e" variableName="ID" />
+		<db:select doc:name="Select" doc:id="3f5c068b-8528-4e0a-9209-afb91daed3f2" config-ref="Database_Config">
+			<db:sql>select * from marka where markaID=:markaID</db:sql>
+			<db:input-parameters><![CDATA[#[{'markaID':varsID}]]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Choice" doc:id="40b8df8c-1b29-4d47-9efe-461a139440ad" >
+			<when expression="#[sizeOf(payload)==0]">
+				<ee:transform doc:name="Transform Message" doc:id="035d0978-8abe-4d61-abf5-b6e3fef2032d" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "not found",
+	"message": "There is no marka with given id"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<set-variable value="404" doc:name="Set Variable" doc:id="581195c0-4557-4439-9342-41bed441f375" variableName="httpStatus" />
+			</when>
+			<otherwise >
+				<db:select doc:name="Select" doc:id="2d6f2ed5-bad4-499e-8a72-c9bae8b3e305" config-ref="Database_Config">
+			<db:sql>select * from marka where markaid=:markaID</db:sql>
+			<db:input-parameters><![CDATA[#[{'markaID': varsID}]]]></db:input-parameters>
+		</db:select>
+				<ee:transform doc:name="Transform Message" doc:id="8b2740b9-347c-48ce-885d-0bf68d5ec042">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	naziv: payload01.naziv,
+	markaID: payload01.markaID
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="GetModel" doc:id="8ff2caab-192a-4519-8628-1a8e1522d037" >
+		<set-variable value="#[message.attributes.uriParams.modelID]" doc:name="Set Variable" doc:id="dea7ba9e-f305-4b15-bd6e-14f092d5ce71" variableName="ID" />
+		<db:select doc:name="Select" doc:id="c2da3a15-5c25-4c22-8f85-0d6a34fdeb44" config-ref="Database_Config">
+			<db:sql>select * from model where modelID=:modelID</db:sql>
+			<db:input-parameters><![CDATA[#[{'modelID':vars.ID}]]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Choice" doc:id="5757474b-ffae-47c1-9408-6c3791f2b4cc" >
+			<when expression="#[sizeOf(payload)==0]">
+				<ee:transform doc:name="Transform Message" doc:id="8fde5d4b-7919-4a4e-b166-cb24bc278858" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "not found",
+	"message": "There is no model with given id"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<set-variable value="404" doc:name="Set Variable" doc:id="eecf59f0-4fec-491e-a66e-ac4c7974277d" variableName="httpStatus" />
+			</when>
+			<otherwise >
+				<db:select doc:name="Select" doc:id="8c7b3b42-f4bd-4933-a44e-1a7d55657c14" config-ref="Database_Config">
+			<db:sql>select * from model where modelid=:modelID</db:sql>
+			<db:input-parameters><![CDATA[#[{'modelID': vars.ID}]]]></db:input-parameters>
+		</db:select>
+				<ee:transform doc:name="Transform Message" doc:id="91d7a7ff-ebd9-4c85-a505-a74b98df0557">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	modelID: payload01.modelID,
+	naziv: payload01.naziv,
+	opis: payload01.opis default ""
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="GetPorudzbina" doc:id="315a8953-7ee8-4525-b3bd-744ba11c2dd7" >
+		<set-variable value="#[message.attributes.uriParams.porudzbinaID]" doc:name="Set Variable" doc:id="e4d78961-e0d6-4312-ac85-2b01877d6aaf" variableName="ID" />
+		<db:select doc:name="Select" doc:id="a96e5399-c0a9-4667-b06b-543a03e29fe0" config-ref="Database_Config">
+			<db:sql>select * from porudzbina where porudzbinaID=:porudzbinaID</db:sql>
+			<db:input-parameters><![CDATA[#[{'porudzbinaID':vars.ID}]]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Choice" doc:id="48eec300-fe5e-424a-ab33-91be93034f69" >
+			<when expression="#[sizeOf(payload)==0]">
+				<ee:transform doc:name="Transform Message" doc:id="5ee0f166-562d-4982-b333-4285386b04d3" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "not found",
+	"message": "There is no porudzbina with given id"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<set-variable value="404" doc:name="Set Variable" doc:id="b38968b9-17b7-4e1f-bb33-459bfd988dac" variableName="httpStatus" />
+			</when>
+			<otherwise >
+				<db:select doc:name="Select" doc:id="9e252d9d-7992-4e21-bf77-9c31e71956a0" config-ref="Database_Config">
+			<db:sql>select * from porudzbina where porudzbinaid=:porudzbinaID</db:sql>
+			<db:input-parameters><![CDATA[#[{'porudzbinaID': vars.ID}]]]></db:input-parameters>
+		</db:select>
+				<ee:transform doc:name="Transform Message" doc:id="9d6e4a62-78bc-424b-a9d2-4e884375123e">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	datum: payload01.datumIsporuke as String,
+	datumPorudzbine: payload01.datumPorudzbine as String,
+	stanje: payload01.stanje,
+	kupacID: payload01.kupacID,
+	porudzbinaID: payload01.porudzbinaID,
+	brojZaPracenje: payload01.brojZaPracenje
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="GetPorudzbinaArtiklbyporudzbina" doc:id="2d138eb2-e47d-40fe-95db-4f9ec75fd5a3" >
+		<set-variable value="#[message.attributes.uriParams.porudzbinaID]" doc:name="Set Variable" doc:id="489ad1d4-b297-4e6d-9127-76381b0addaf" variableName="ID" />
+		<db:select doc:name="Select" doc:id="7f42bd3a-e498-4bdc-bb54-314857c1999f" config-ref="Database_Config">
+			<db:sql>select * from porudzbinaartikl where porudzbinaID=:porudzbinaID</db:sql>
+			<db:input-parameters><![CDATA[#[{'porudzbinaID':vars.ID}]]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Choice" doc:id="ef2e251f-3c9d-4210-88c2-a7794ffc2115" >
+			<when expression="#[sizeOf(payload)==0]">
+				<ee:transform doc:name="Transform Message" doc:id="991600c8-54b8-4cf4-ab54-db23bcb56998" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "not found",
+	"message": "There is no porudzbinaartikl with given id"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<set-variable value="404" doc:name="Set Variable" doc:id="ffd2c836-62fc-4860-a296-1d6406af41c3" variableName="httpStatus" />
+			</when>
+			<otherwise >
+				<db:select doc:name="Select" doc:id="a1819729-0a22-437a-9ded-8cca2754c60e" config-ref="Database_Config">
+			<db:sql>select * from porudzbinaartikl where porudzbinaid=:porudzbinaID</db:sql>
+			<db:input-parameters><![CDATA[#[{'porudzbinaID': vars.ID}]]]></db:input-parameters>
+		</db:select>
+				<ee:transform doc:name="Transform Message" doc:id="e3f04bbb-4ff8-4742-9fa8-912324d9b2b5">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+	payload map ( payload01 , indexOfPayload01 ) -> {
+	kolicina: payload01.kolicina,
+	artiklID: payload01.artiklID,
+	porudzbinaID: payload01.porudzbinaID,
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="GetRacun" doc:id="05075436-e664-4cdb-b717-f519e281b6eb" >
+		<set-variable value="#[message.attributes.uriParams.racunID]" doc:name="Set Variable" doc:id="52a88024-54cb-4d27-aa89-38fea035c37a" variableName="ID" />
+		<db:select doc:name="Select" doc:id="0293fdf0-c8f5-459c-a2f0-40fdd845de7b" config-ref="Database_Config">
+			<db:sql>select * from racun where racunID=:racunID</db:sql>
+			<db:input-parameters><![CDATA[#[{'racunID':vars.ID}]]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Choice" doc:id="f5f064b8-e42e-4fe9-b53e-e0244b85edeb" >
+			<when expression="#[sizeOf(payload)==0]">
+				<ee:transform doc:name="Transform Message" doc:id="149af642-d01a-4d2a-bc33-ce0d7c2b3765" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "not found",
+	"message": "There is no racun with given id"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<set-variable value="404" doc:name="Set Variable" doc:id="6f3b4130-722c-4aea-bd36-040711ded85e" variableName="httpStatus" />
+			</when>
+			<otherwise >
+				<db:select doc:name="Select" doc:id="8dd4e3da-2db2-46ab-b6c4-8b9a56fd33da" config-ref="Database_Config">
+			<db:sql>select * from racun where racunid=:racunID</db:sql>
+			<db:input-parameters><![CDATA[#[{'racunID': vars.ID}]]]></db:input-parameters>
+		</db:select>
+				<ee:transform doc:name="Transform Message" doc:id="415f8a61-6880-4e52-bda5-121336363c97">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	suma: payload01.suma,
+	datum: payload01.datum as String,
+	radnikID: payload01.radnikID,
+	porudzbinaID: payload01.porudzbinaID,
+	racunID: payload01.racunID
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="GetRadnik" doc:id="c7b467c4-1ea4-4231-9547-34b7b63201d5" >
+		<set-variable value="#[message.attributes.uriParams.radnikID]" doc:name="Set Variable" doc:id="4f564ea5-d19c-4dc7-8cd0-f8e31cd394b4" variableName="ID" />
+		<db:select doc:name="Select" doc:id="45459d64-b7dd-4183-bea0-436bf2d054a9" config-ref="Database_Config">
+			<db:sql>select * from radnik where radnikID=:radnikID</db:sql>
+			<db:input-parameters><![CDATA[#[{'radnikID':vars.ID}]]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Choice" doc:id="2b1eb731-e0b8-40ab-a772-9ef3568be560" >
+			<when expression="#[sizeOf(payload)==0]">
+				<ee:transform doc:name="Transform Message" doc:id="f0a98d9b-7b4f-4ce1-ae05-1c77b2c9db82" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "not found",
+	"message": "There is no radnik with given id"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<set-variable value="404" doc:name="Set Variable" doc:id="e11419bf-2cee-47ed-a64c-de72c0e87923" variableName="httpStatus" />
+			</when>
+			<otherwise >
+				<db:select doc:name="Select" doc:id="9ef24c1b-9e8c-4d29-8997-0f4dbe4bb074" config-ref="Database_Config">
+			<db:sql>select * from radnik where radnikid=:radnikID</db:sql>
+			<db:input-parameters><![CDATA[#[{'radnikID': vars.ID}]]]></db:input-parameters>
+		</db:select>
+				<ee:transform doc:name="Transform Message" doc:id="eeb97382-a98f-4ef0-82e8-a3370b797791">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	radnikID: payload01.radnikID,
+	password: payload01.password,
+	roleID: payload01.roleID,
+	brojLicneKarte: payload01.brojLicneKarte,
+	email: payload01.email,
+	username: payload01.username
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="GetBarkod" doc:id="390a2ebf-569c-4718-9f95-30abb7ec2427" >
+		<set-variable value="#[message.attributes.uriParams.barkodID]" doc:name="_Set Variable" doc:id="e337835d-8977-4d1a-b99c-a52027f27fc3" variableName="ID" />
+		<db:select doc:name="Select" doc:id="50e24f78-21a9-4e1c-8d4d-02af3befe38f" config-ref="Database_Config">
+			<db:sql>select * from barkod where barkodID=:barkodID</db:sql>
+			<db:input-parameters><![CDATA[#[{'barkodID':vars.ID}]]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Choice" doc:id="bef8035d-e995-4514-b2c2-a1af791cf6cf" >
+			<when expression="#[sizeOf(payload)==0]">
+				<ee:transform doc:name="Transform Message" doc:id="fa974ed8-c855-46ad-bf8f-1cfae82c957e" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "not found",
+	"message": "There is no barkod with given id"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<set-variable value="404" doc:name="Set Variable" doc:id="54dc5440-02e0-4f31-9431-18b084aa08f9" variableName="httpStatus" />
+			</when>
+			<otherwise >
+				<db:select doc:name="Select" doc:id="b9c58dec-53e0-49fa-969b-93be596d1ab0" config-ref="Database_Config">
+			<db:sql>select * from barkod where barkodID=:barkodID</db:sql>
+			<db:input-parameters><![CDATA[#[{'barkodID': vars.ID}]]]></db:input-parameters>
+		</db:select>
+				<ee:transform doc:name="Transform Message" doc:id="8f145683-541e-4970-879f-85836045215e">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) ->{
+	barKodID: payload01.barKodID,
+	brojBarKoda: payload01.brojBarKoda
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="GetVelicina" doc:id="d1e12072-a748-4a64-bac5-888769b27f24" >
+		<set-variable value="#[message.attributes.uriParams.velicinaID]" doc:name="_Set Variable" doc:id="135a975b-4119-4939-9ef2-384f924e0e95" variableName="ID" />
+		<db:select doc:name="Select" doc:id="1f1fcf68-b3a1-4bbc-b2a8-20482330ffc4" config-ref="Database_Config">
+			<db:sql>select * from velicina where velicinaID=:velicinaID</db:sql>
+			<db:input-parameters><![CDATA[#[{'velicinaID':vars.ID}]]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Choice" doc:id="4db8bf2d-1fe1-4fac-b0eb-47af00490ce6" >
+			<when expression="#[sizeOf(payload)==0]">
+				<ee:transform doc:name="Transform Message" doc:id="262408d9-d966-4a3c-9f9e-fc1a2d16ed47" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "not found",
+	"message": "There is no velicina with given id"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<set-variable value="404" doc:name="Set Variable" doc:id="44d80584-b346-4134-a547-f524a0f8d5b1" variableName="httpStatus" />
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message" doc:id="8927b5f8-2e84-4f63-9cb7-d3f749d1ad09">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) ->{
+	velicinaID: payload01.velicinaID,
+	naziv: payload01.naziv,
+	oznaka: payload01.oznaka,
+	broj: payload01.broj,
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="AddArtikl" doc:id="bb7c380b-3c89-41f6-8cdb-da0b96eb9d0d" >
+		<db:insert doc:name="Insert" doc:id="76a0bebd-fbb0-490e-b229-ff4506b505de" config-ref="Database_Config">
+			<db:sql >Insert into Artikl values (next value for Seq_Artikl,:velicinaID,:barKodID,:dostupno,:cena,:modelID,:markaID,:tip)</db:sql>
+			<db:input-parameters ><![CDATA[#[{velicinaID: payload.velicinaID,
+	barKodID: payload.barKodID,
+	modelID: payload.modelID,
+	artiklID: payload.artiklID,
+	dostupno: payload.dostupno,
+	markaID: payload.markaID,
+	tip: payload.tip,
+	cena: payload.cena}]]]></db:input-parameters>
+		</db:insert>
+		<ee:transform doc:name="Transform Message" doc:id="13e3296a-3ec2-4578-8f22-09e9d4f3b2da" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "success",
+	"message": "Artikl added"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="AddKupac" doc:id="a3a203e9-7d57-4289-8c8e-b68c35be7560" >
+		<db:insert doc:name="Insert" doc:id="430a7166-9b47-426d-8641-38b364eadfec" config-ref="Database_Config">
+			<db:sql >Insert into Kupac values (:brojTelefona,:adresa,:postanskiBroj,:grad,:ime,:prezime,:email,:username,:password,:roleID)</db:sql>
+			<db:input-parameters ><![CDATA[#[{ime: payload.ime,
+	prezime: payload.prezime,
+	password: payload.password,
+	brojTelefona: payload.brojTelefona,
+	adresa: payload.adresa,
+	postanskiBroj: payload.postanskiBroj,
+	grad: payload.grad,
+	email: payload.email,
+	username: payload.username,
+	roleID: payload.roleID}]]]></db:input-parameters>
+		</db:insert>
+		<ee:transform doc:name="Transform Message" doc:id="7865ed5c-75c0-4d1e-92bf-4216c147d29c" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "success",
+	"message": "Kupac added"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="AddMarka" doc:id="170eda47-2f35-4554-9032-f28451fadb4a" >
+		<db:insert doc:name="Insert" doc:id="aa3f1f35-bbcf-4c78-b5c6-cbb7cf632ccc" config-ref="Database_Config">
+			<db:sql >Insert into Marka values (:naziv)</db:sql>
+			<db:input-parameters ><![CDATA[#[{naziv:payload.naziv}]]]></db:input-parameters>
+		</db:insert>
+		<ee:transform doc:name="Transform Message" doc:id="e48b2a72-b511-4e48-8297-56ba95ebf4bd" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "success",
+	"message": "Marka added"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="AddModel" doc:id="772878fa-9ff8-47c5-84d9-553e5d825160" >
+		<db:insert doc:name="Insert" doc:id="a0589abc-e15c-499e-9482-3f52644b3ec4" config-ref="Database_Config">
+			<db:sql >Insert into Model values (:naziv,:opis);</db:sql>
+			<db:input-parameters ><![CDATA[#[{naziv: payload.naziv,
+	opis: payload.opis}]]]></db:input-parameters>
+		</db:insert>
+		<ee:transform doc:name="Transform Message" doc:id="4f895492-eddb-4f4a-a80f-2d71c4730391" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "success",
+	"message": "Model added"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="AddPorudzbina" doc:id="297e252f-d37a-4d4a-8af2-314d3fbdb5f7" >
+		<db:insert doc:name="Insert" doc:id="c965ca30-01f3-43a1-afcf-5b1b9da6a953" config-ref="Database_Config">
+			<db:sql >Insert into Porudzbina values (:kupacID,:brojZaPracenje,:datumPorudzbine,:datumIsporuke,:stanje)</db:sql>
+			<db:input-parameters ><![CDATA[#[{datumIsporuke: payload.datum,
+	datumPorudzbine: payload.datumPorudzbine,
+	stanje: payload.stanje,
+	kupacID: payload.kupacID,
+	brojZaPracenje: payload.brojZaPracenje}]]]></db:input-parameters>
+		</db:insert>
+		<ee:transform doc:name="Transform Message" doc:id="cfb04aee-a0d4-4dd2-838a-cae6ae4df3a6" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "success",
+	"message": "Porudzbina added"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="AddPorudzbinaArtikl" doc:id="e71492f4-7d89-4e8d-bad0-92ffc006ba24" >
+		<db:insert doc:name="Insert" doc:id="a212c560-abcf-4548-bc7c-cc7bf8d5409d" config-ref="Database_Config">
+			<db:sql >insert into porudzbinaartikl values (:porudzbinaID,:artiklID,:kolicina)</db:sql>
+			<db:input-parameters ><![CDATA[#[{porudzbinaID: payload.porudzbinaID,
+	artiklID: payload.artiklID,
+	kolicina: payload.kolicina}]]]></db:input-parameters>
+		</db:insert>
+		<ee:transform doc:name="Transform Message" doc:id="33e81e24-4597-4499-bd9f-21b1f8e61074" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "success",
+	"message": "Porudzbinaartikl added"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="AddRacun" doc:id="bd6c3a8e-306e-4657-81db-b40fa778cac0" initialState="started">
+		<db:insert doc:name="Insert" doc:id="9d627c84-3d7c-45c8-8473-6c255a67c9c9" config-ref="Database_Config">
+			<db:sql >Insert into Racun values (next value for Seq_Racun,:suma,:datum,:porudzbinaID,:radnikID);</db:sql>
+			<db:input-parameters ><![CDATA[#[{suma: payload.suma,
+	datum: payload.datum,
+	radnikID: payload.radnikID,
+	porudzbinaID: payload.porudzbinaID}]]]></db:input-parameters>
+		</db:insert>
+		<ee:transform doc:name="Transform Message" doc:id="e0ca1ed6-c0eb-487b-8a3a-e791a0bbd29f" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "success",
+	"message": "Racun added"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="AddRadnik" doc:id="44515823-2a1b-4fe4-b1ac-a0ae7e6e01b8" >
+		<db:insert doc:name="Insert" doc:id="97b90c20-9fd4-44aa-a000-25c54f91efc3" config-ref="Database_Config">
+			<db:sql >Insert into Radnik values (:brojLicneKarte,:email,:username,:password,:roleID)</db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	password: payload.password,
+	brojLicneKarte: payload.brojLicneKarte,
+	email: payload.email,
+	username: payload.username,
+	roleID: payload.roleID}]]]></db:input-parameters>
+		</db:insert>
+		<ee:transform doc:name="Transform Message" doc:id="cb15969a-55dd-4638-adb3-b36097376906" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "success",
+	"message": "Radnik added"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="AddBarkod" doc:id="c1bbe110-fec1-45d7-be32-a7c14a112ef8" >
+		<db:insert doc:name="Insert" doc:id="f9f7ab95-543e-4a29-acc9-04685a1d820e" config-ref="Database_Config">
+			<db:sql >Insert into BarKod values (:brojBarKoda)</db:sql>
+			<db:input-parameters ><![CDATA[#[{brojBarKoda: payload.brojBarKoda}]]]></db:input-parameters>
+		</db:insert>
+		<ee:transform doc:name="Transform Message" doc:id="832949d2-75ec-4504-a13f-b33899083794" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "success",
+	"message": "Barkod added"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="AddVelicina" doc:id="db549d75-6ed5-4769-a080-ec3a508c13e1" >
+		<db:insert doc:name="Insert" doc:id="c66726f0-0c08-43c7-8a80-dc4aabcbcf05" config-ref="Database_Config">
+			<db:sql >Insert into Velicina values (:naziv, :oznaka,:broj)</db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	naziv: payload.naziv,
+	oznaka: payload.oznaka,
+	broj: payload.broj}]]]></db:input-parameters>
+		</db:insert>
+		<ee:transform doc:name="Transform Message" doc:id="b2aaa949-0290-4f7e-bda1-88afb5160104" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "success",
+	"message": "Velicina added"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="UpdateArtikl" doc:id="746102c8-5aae-4cc4-b91c-c5271de063b3" >
+		<set-variable value="#[payload]" doc:name="Set Variable" doc:id="a50bc404-8437-4b1c-bde4-611fe57f1651" variableName="body" />
+		<set-variable value="#[message.attributes.uriParams.artiklID]" doc:name="Set Variable" doc:id="5ff895f7-21ca-466c-829e-adcbefb9a123" variableName="ID" />
+		<db:select doc:name="Select" doc:id="ec05ce93-825d-4fae-88a8-c83a6c55404f" config-ref="Database_Config">
+			<db:sql >select * from artikl where artiklID=:artiklID</db:sql>
+			<db:input-parameters ><![CDATA[#[{'artiklID': attributes.uriParams.artiklID}]]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Choice" doc:id="d0848a82-2c46-4dd2-967c-7b29caac6af2" >
+			<when expression="#[sizeOf(payload)==0]">
+				<ee:transform doc:name="Transform Message" doc:id="47b965d8-6fbf-4b14-839f-8cfb4cffb4e3" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	
+	"status": "not found",
+	"message": "There are no artikl with given id"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<set-variable value="404" doc:name="Set Variable" doc:id="0e37e89d-62bd-427a-bdfa-94cb8f5e9eee" variableName="httpStatus"/>
+			</when>
+			<otherwise >
+				<set-payload value="#[vars.body]" doc:name="Set Payload" doc:id="f84b55e3-8383-41b4-afd1-770e7ba997d5" />
+				<db:update doc:name="Update" doc:id="f86d3b71-683f-4f5d-80fb-752fbfaa0a1c" config-ref="Database_Config">
+					<db:sql >update Artikl set velicina=:velicinaID,barkodid=:barKodID,dostupno=:dostupno,cena=:cena,modelid=:modelID,markaid=:markaID,tip=:tip
+where artiklid=:artiklID</db:sql>
+					<db:input-parameters ><![CDATA[#[{velicinaID: payload.velicinaID,
+	barKodID: payload.barKodID,
+	modelID: payload.modelID,
+	dostupno: payload.dostupno,
+	markaID: payload.markaID,
+	tip: payload.tip,
+	cena: payload.cena,
+	'artiklID':vars.ID}]]]></db:input-parameters>
+				</db:update>
+				<ee:transform doc:name="Message" doc:id="716ca6a5-5e80-45d9-8131-9d246dbaace1" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	
+	"status": "success",
+	"message": "Artikl updated"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="UpdateKupac" doc:id="40b2d4b6-29fe-4bfd-aa12-401d8320ec9c" >
+		<set-variable value="#[payload]" doc:name="Set Variable" doc:id="1c30c0e5-b3f1-4b67-bd58-c4aaca67c238" variableName="body" />
+		<set-variable value="#[message.attributes.uriParams.kupacID]" doc:name="Set Variable" doc:id="a2789469-a2d5-4f12-b8d8-18ff4126810f" variableName="ID" />
+		<db:select doc:name="Select" doc:id="ae1f3a52-5668-4d42-928e-43022b757061" config-ref="Database_Config" >
+			<db:sql >select * from kupac where kupacID=:kupacID</db:sql>
+			<db:input-parameters ><![CDATA[#[{'kupacID': attributes.uriParams.kupacID}]]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Choice" doc:id="de113d5c-88eb-4486-82b4-fa7a373017ce" >
+			<when expression="#[sizeOf(payload)==0]" >
+				<ee:transform doc:name="Transform Message" doc:id="86d9203a-0320-4eff-be07-7c33ac60a847" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	
+	"status": "not found",
+	"message": "There are no kupac with given id"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<set-variable value="404" doc:name="Set Variable" doc:id="5ccfb464-ad6c-48f1-a025-487129b55e73" variableName="httpStatus" />
+			</when>
+			<otherwise >
+				<set-payload value="#[vars.body]" doc:name="Set Payload" doc:id="acc40aba-9ee3-42c8-ac6f-8d219173e6b9" />
+				<db:update doc:name="Update" doc:id="35aec9d5-25ab-47e8-b8a1-bdc72c1be015" config-ref="Database_Config">
+					<db:sql >Update kupac set brojTelefona=:brojTelefona,adresa=:adresa,postanskiBroj=:postanskiBroj,grad=:grad,ime=:ime,prezime=:prezime,email=:email,username=:username,password=:password,roleID=1
+where kupacid=:kupacID</db:sql>
+					<db:input-parameters ><![CDATA[#[{ime: payload.ime,
+	prezime: payload.prezime,
+	password: payload.password,
+	brojTelefona: payload.brojTelefona,
+	adresa: payload.adresa,
+	postanskiBroj: payload.postanskiBroj,
+	grad: payload.grad,
+	email: payload.email,
+	username: payload.username,
+	roleID: payload.roleID,
+	'kupacID': vars.ID}]]]></db:input-parameters>
+				</db:update>
+				<ee:transform doc:name="Transform Message" doc:id="72330aef-d1a0-40b8-b911-02b1a2be3ff8" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	
+	"status": "success",
+	"message": "Kupac updated"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="UpdateMarka" doc:id="25ef43d1-1fe0-444c-932e-7330ed974a48" >
+		<set-variable value="#[message.attributes.uriParams.markaID]" doc:name="Set Variable" doc:id="d7c9c806-4f82-4b64-84bb-9d456d941574" variableName="ID" />
+		<set-variable value="#[payload]" doc:name="Set Variable" doc:id="32afc047-52db-4c98-8926-0b463fe9b6b9" variableName="body" />
+		<db:select doc:name="Select" doc:id="9e7a6bef-5364-456d-9343-5a100e35209f" config-ref="Database_Config" >
+			<db:sql >select * from marka where markaID=:markaID</db:sql>
+			<db:input-parameters ><![CDATA[{'markaID': attributes.uriParams.markaID}]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Choice" doc:id="5004f334-1316-4b9e-9cbc-74527ac7c0fd" >
+			<when expression="#[sizeOf(payload)==0]" >
+				<ee:transform doc:name="Transform Message" doc:id="c5aa967d-94da-4737-9e18-b2f28cb67661" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	
+	"status": "not found",
+	"message": "There are no marka with given id"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<set-variable value="404" doc:name="Set Variable" doc:id="fa7a77d4-bad8-4d10-bd04-5b3adc01d254" variableName="httpStatus" />
+			</when>
+			<otherwise >
+				<set-payload value="#[vars.body]" doc:name="Set Payload" doc:id="a250955c-5709-4779-8839-ee3416da89fe" />
+				<db:update doc:name="Update" doc:id="f01bcbed-c1a9-4ffe-b585-ebacbf6ff588" config-ref="Database_Config">
+					<db:sql >update marka 
+set naziv:=naziv
+where markaid=:markaID</db:sql>
+					<db:input-parameters ><![CDATA[#[{naziv:payload.naziv,
+'markaID':vars.ID
+}]]]></db:input-parameters>
+				</db:update>
+				<ee:transform doc:name="Transform Message" doc:id="08c8ac6e-1a52-4690-bc0a-202541107ea1">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "success",
+	"message": "Marka updated"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="UpdateModel" doc:id="7ad669dc-9e35-44c4-a6d2-9715a7c5dac8" >
+		<set-variable value="#[message.attributes.uriParams.modelID]" doc:name="Set Variable" doc:id="725946fb-bedf-46b7-b28d-7909a388dd23" variableName="ID" />
+		<set-variable value="#[payload]" doc:name="Set Variable" doc:id="259a382b-e24f-4867-a1fc-9fe2f58393e5" variableName="body" />
+		<db:select doc:name="Select" doc:id="543d8079-1ac8-4f52-bee3-07e8e471d7e5" config-ref="Database_Config" >
+			<db:sql >select * from model where modelID=:modelID</db:sql>
+			<db:input-parameters ><![CDATA[{'modelID': attributes.uriParams.modelID}]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Choice" doc:id="911cd694-5d51-4540-bd20-209b6ed7d45c" >
+			<when expression="#[sizeOf(payload)==0]" >
+				<ee:transform doc:name="Transform Message" doc:id="db199e00-ed5f-4655-8931-be737d4afe61" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	
+	"status": "not found",
+	"message": "There are no model with given id"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<set-variable value="404" doc:name="Set Variable" doc:id="d125b503-116d-409a-9d23-b04c61deebbe" variableName="httpStatus" />
+			</when>
+			<otherwise >
+				<set-payload value="#[vars.body]" doc:name="Set Payload" doc:id="1fd61587-2ec9-4b91-848c-5f81c0f647cd" />
+				<db:update doc:name="Update" doc:id="0d1d7444-3891-47e9-a9f5-e53f0a6c8d4a" config-ref="Database_Config">
+					<db:sql >update model
+set naziv=:naziv,opis=:opis
+where modelID=:modelID</db:sql>
+					<db:input-parameters ><![CDATA[#[{naziv: payload.naziv,
+	opis: payload.opis,
+	'modelID': vars.ID}]]]></db:input-parameters>
+				</db:update>
+				<ee:transform doc:name="Transform Message" doc:id="d82634fc-4135-4d5b-8d95-8feed3b81aa1" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	
+	"status": "success",
+	"message": "Model updated"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="UpdatePorudzbina" doc:id="d89da3b9-2616-4a5e-a9c4-f48878b632ac" >
+		<set-variable value="#[message.attributes.uriParams.porudzbinaID]" doc:name="Set Variable" doc:id="daf13dd2-0aeb-4995-a408-eb1d8b331592" variableName="ID" />
+		<set-variable value="#[payload]" doc:name="Set Variable" doc:id="b35c8497-4f9a-4ca9-a30e-79d13755b149" variableName="body" />
+		<db:select doc:name="Select" doc:id="fcbb5e62-a82b-45a7-8ff9-ece63fcbf18d" config-ref="Database_Config" >
+			<db:sql >select * from porudzbina where porudzbinaID=:artiklporudzbinaIDID</db:sql>
+			<db:input-parameters ><![CDATA[#[{'porudzbinaID': attributes.uriParams.porudzbinaID}]]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Choice" doc:id="5500a68c-deaf-4219-8911-dea01a401e42" >
+			<when expression="#[sizeOf(payload)==0]" >
+				<ee:transform doc:name="Transform Message" doc:id="053b0cda-5d47-4dd5-968d-4c405779d9e0" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	
+	"status": "not found",
+	"message": "There are no porudzbina with given id"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<set-variable value="404" doc:name="Set Variable" doc:id="efbda554-c0e1-4861-853e-a4cc3e927794" variableName="httpStatus" />
+			</when>
+			<otherwise >
+				<set-payload value="#[vars.body]" doc:name="Set Payload" doc:id="28e14fe4-cbaf-47e3-b8c8-8ea893feb95a" />
+				<db:update doc:name="Update" doc:id="ac42597b-2f2f-4114-ad50-c32d6c404b5a" config-ref="Database_Config">
+					<db:sql >update porudzbina
+set datumIsporuke=:datumIsporuke,datumPorudzbine=:datumPorudzbine,stanje=:stanje,kupacID:=kupacID,brojZaPracenje=:brojZaPracenje
+where porudzbinaID=:porudzbinaID</db:sql>
+					<db:input-parameters ><![CDATA[#[{datumIsporuke: payload.datum,
+	datumPorudzbine: payload.datumPorudzbine,
+	stanje: payload.stanje,
+	kupacID: payload.kupacID,
+	brojZaPracenje: payload.brojZaPracenje,
+	'porudzbinaID': vars.ID}]]]></db:input-parameters>
+				</db:update>
+				<ee:transform doc:name="Transform Message" doc:id="1813c1f3-d1a5-4d88-a69c-78adafc7c450" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	
+	"status": "success",
+	"message": "Porudzbina updated"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="UpdateRacun" doc:id="87f1ecc4-5940-4ed7-8809-5f6aeb655392" >
+		<set-variable value="#[payload]" doc:name="Set Variable" doc:id="5a16ed4d-97ea-456e-bad5-6533190db84e" variableName="body" />
+		<set-variable value="#[message.attributes.uriParams.racunID]" doc:name="Set Variable" doc:id="29443d0b-8d01-464c-8ba6-09701da38dc9" variableName="ID" />
+		<db:select doc:name="Select" doc:id="dc1cd413-9cf9-4767-9f5f-b68cbe11a611" config-ref="Database_Config" >
+			<db:sql >select * from racun where racunID=:racunID</db:sql>
+			<db:input-parameters ><![CDATA[#[{'racunID': attributes.uriParams.racunID}]]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Choice" doc:id="df6fcfac-9b33-4cfe-8b5d-ff0f373b6d3d" >
+			<when expression="#[sizeOf(payload)==0]" >
+				<ee:transform doc:name="Transform Message" doc:id="e5c532a2-cc2b-439d-81cd-fbb36e07ea15" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	
+	"status": "not found",
+	"message": "There are no racun with given id"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<set-variable value="404" doc:name="Set Variable" doc:id="7f70948e-e7dd-4d78-8ff3-c58eae903d9c" variableName="httpStatus" />
+			</when>
+			<otherwise >
+				<set-payload value="#[vars.body]" doc:name="Set Payload" doc:id="0cdbeb46-f8fe-4f58-a70e-8a65e44c504e" />
+				<db:update doc:name="Update" doc:id="066f84a1-ffb8-481a-ab05-61420b9f2f9e" config-ref="Database_Config">
+					<db:sql >update racun
+set suma=:suma,datum=:datum,radnikID:=radnikID,porudzbinaID=:porudzbinaID
+where racunID=:racunID</db:sql>
+					<db:input-parameters ><![CDATA[#[{suma: payload.suma,
+	datum: payload.datum,
+	radnikID: payload.radnikID,
+	porudzbinaID: payload.porudzbinaID,
+	'racunID': vars.ID}]]]></db:input-parameters>
+				</db:update>
+				<ee:transform doc:name="Transform Message" doc:id="bcd9dc28-f69b-45a0-9f53-bbd62bb348b1" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	
+	"status": "success",
+	"message": "Racun updated"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="UpdateRadnik" doc:id="24e03b7d-9018-4543-af1d-0fa75d55d760" >
+		<set-variable value="#[payload]" doc:name="Set Variable" doc:id="a4d1f62e-90b0-4d7e-adcf-09460850ccfb" variableName="body" />
+		<set-variable value="#[message.attributes.uriParams.radnikID]" doc:name="Set Variable" doc:id="1a8454f7-03c2-4d0d-8b84-33809ab74584" variableName="ID" />
+		<db:select doc:name="Select" doc:id="b52ede6e-482d-46d8-96f3-1bbc6570638e" config-ref="Database_Config" >
+			<db:sql >select * from radnik where radnikID=:radnikID</db:sql>
+			<db:input-parameters ><![CDATA[{'radnikID': attributes.uriParams.radnikID}]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Choice" doc:id="3b09fc70-aff3-4c2a-bd4f-2877a760aa91" >
+			<when expression="#[sizeOf(payload)==0]" >
+				<ee:transform doc:name="Transform Message" doc:id="9bc993cf-b374-4bea-8005-272496fdc3ad" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	
+	"status": "not found",
+	"message": "There are no radnik with given id"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<set-variable value="404" doc:name="Set Variable" doc:id="21044cad-eed5-4e5c-95da-174b6edfef63" variableName="httpStatus" />
+			</when>
+			<otherwise >
+				<set-payload value="#[vars.body]" doc:name="Set Payload" doc:id="c22cbb4b-bc00-432f-92be-403b6566e1f9" />
+				<db:update doc:name="Update" doc:id="c7afecb3-2cec-46f4-b32b-9ff07658c12f" config-ref="Database_Config">
+					<db:sql >update radnik
+set password=:password,brojLicneKarte=:brojLicneKarte,email=:email,username=:username,roleID=2
+where radnikID=:radnikID</db:sql>
+					<db:input-parameters ><![CDATA[#[{password: payload.password,
+	brojLicneKarte: payload.brojLicneKarte,
+	email: payload.email,
+	username: payload.username,
+	'radnikID': vars.ID}]]]></db:input-parameters>
+				</db:update>
+				<ee:transform doc:name="Transform Message" doc:id="18cd016d-264d-4b93-b529-d6c17823e103" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	
+	"status": "success",
+	"message": "Radnik updated"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="UpdateBarkod" doc:id="5ce0a4ba-da1e-43f5-b7b4-a7b1dd7122c5" >
+		<set-variable value="#[message.attributes.uriParams.barkodID]" doc:name="Set Variable" doc:id="f805e5e2-1ffd-4e2e-8239-a328027c6b38" variableName="ID" />
+		<set-variable value="#[payload]" doc:name="Set Variable" doc:id="4728c438-ece8-42c9-b68d-529487ad3182" variableName="body" />
+		<db:select doc:name="Select" doc:id="b777e081-9127-416e-8c30-b6a9d768827d" config-ref="Database_Config" >
+			<db:sql >select * from barkod where barkodID=:barkodID</db:sql>
+			<db:input-parameters ><![CDATA[#[{'barkodID': attributes.uriParams.barkodID}]]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Choice" doc:id="a1fdb56b-e652-4ffa-a747-0e8817090950" >
+			<when expression="#[sizeOf(payload)==0]" >
+				<ee:transform doc:name="Transform Message" doc:id="8e96be23-cce0-42aa-b66e-9fa8458801aa" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	
+	"status": "not found",
+	"message": "There are no barkod with given id"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<set-variable value="404" doc:name="Set Variable" doc:id="21ed0436-25dd-4e59-a1e3-434ffc3f642b" variableName="httpStatus" />
+			</when>
+			<otherwise >
+				<set-payload value="#[vars.body]" doc:name="Set Payload" doc:id="81c42e7c-e0e1-4d5e-aec4-d6aa836ddbba" />
+				<db:update doc:name="Update" doc:id="41c8abe8-9e35-4e74-b345-1a72ec1fc091" config-ref="Database_Config">
+					<db:sql >update barkod 
+set brojbarkoda=:brojBarKoda
+where barkodid=:barkodID</db:sql>
+					<db:input-parameters ><![CDATA[#[{brojBarKoda: payload.brojBarKoda,
+	'barkodID':vars.ID
+	
+}]]]></db:input-parameters>
+				</db:update>
+				<ee:transform doc:name="Transform Message" doc:id="d270a6d2-b487-4a90-bc4c-cef28d41b287" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	
+	"status": "success",
+	"message": "Barkod updated"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="UpdateVelicina" doc:id="5ee38c1e-725f-4c86-a367-3c19d34cadd5" >
+		<set-variable value="#[payload]" doc:name="Set Variable" doc:id="2ba2b323-04db-47f6-98ac-eb174372e6f2" variableName="body"/>
+		<set-variable value="#[message.attributes.uriParams.velicinaID]" doc:name="Set Variable" doc:id="67e7cd70-9e4c-46ad-a399-740bfee77e61" variableName="ID"/>
+		<db:select doc:name="Select" doc:id="78badd41-dc94-40a0-b356-2d6783c876e4" config-ref="Database_Config" >
+			<db:sql >select * from velicina where velicinaID=:velicinaID</db:sql>
+			<db:input-parameters ><![CDATA[#[{'velicinaID': vars.ID}]]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Choice" doc:id="6a5ac131-11a9-44b6-b601-183569c37f0b" >
+			<when expression="#[sizeOf(payload)==0]" >
+				<ee:transform doc:name="Transform Message" doc:id="6aafafd8-d30b-4c2f-917b-e4ed1a608ab1" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "not found",
+	"message": "There is no velicina with given id"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<set-variable value="404" doc:name="Set Variable" doc:id="f5a96e2c-be30-43d3-9695-52867c16d2fb" variableName="httpStatus" />
+			</when>
+			<otherwise >
+				<set-payload value="#[vars.body]" doc:name="Set Payload" doc:id="8c79953e-8227-4d62-81f5-ea298d26109a" />
+				<db:update doc:name="Update" doc:id="46664c94-1c66-4905-846d-05b1cfbe957f" config-ref="Database_Config">
+					<db:sql >update velicina
+set naziv=:naziv,oznaka=:oznaka,broj=:broj
+where velicinaID=:velicinaID</db:sql>
+					<db:input-parameters ><![CDATA[#[{naziv: payload.naziv,
+	oznaka: payload.oznaka,
+	broj: payload.broj,
+	'velicinaID': vars.ID}]]]></db:input-parameters>
+					<db:auto-generated-keys-column-names />
+				</db:update>
+				<ee:transform doc:name="Transform Message" doc:id="90709b48-d144-4358-909f-f8cfcc35a8cb" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "success",
+	"message": "Velicina updated"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+</mule>

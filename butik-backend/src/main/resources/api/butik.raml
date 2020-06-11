@@ -1,0 +1,605 @@
+#%RAML 1.0
+title: Online Butik API
+mediaType:
+  - application/json
+version: "1.0"
+protocols:
+  - HTTP
+baseUri: http://localhost:8081/api
+types:
+  Velicina:
+    properties:
+      velicinaID?:
+        type: number
+        format: int
+      naziv:
+        example: small
+        type: string
+      oznaka:
+        example: s
+        type: string
+      broj:
+        example: 32
+        type: number
+        format: int
+  BarKod:
+    properties:
+      barKodID?:
+        example: 1
+        type: number
+        format: int
+      brojBarKoda:
+        example: 9219481234532
+        type: number
+        maximum: 9999999999999
+        format: long
+  Model:
+    properties:
+      modelID?:
+        example: 1
+        type: number
+        format: int
+      naziv:
+        example: Majica
+        type: string
+      opis:
+        example: kratak rukav
+        type: string
+  Marka:
+    properties:
+      markaID?:
+        example: 1
+        type: number
+        format: int
+      naziv:
+        example: H&M
+        type: string
+  Kupac:
+    properties:
+      kupacID?:
+        example: 1
+        type: number
+        format: int
+      brojTelefona:
+        example: 611234123
+        type: number
+        format: int
+      adresa:
+        example: Stanislava Vinavera 24
+        type: string
+      postanskiBroj:
+        example: "11070"
+        type: string
+      grad:
+        example: Novi Beograd
+        type: string
+      ime:
+        example: Nikolina
+        type: string
+      prezime:
+        example: Kuzamnovic
+        type: string
+      username:
+        example: nikolina232
+        type: string
+      password:
+        example: 10000lightingbugs
+        type: string
+      email:
+        example: kuzmanovic.n@hotmail.com
+        type: string
+      roleID:
+        example: 1
+        type: number
+        format: int
+  PorudzbinaArtikl:
+    properties:
+      porudzbinaID:
+        example: 1
+        type: number
+        format: int
+      artiklID:
+        example: 1
+        type: number
+        format: int
+      kolicina:
+        example: 1
+        type: number
+        format: int
+  Racun:
+    properties:
+      racunID?:
+        example: 1
+        type: number
+        format: int
+      suma:
+        example: 1000
+        type: number
+        format: double
+      datum:
+        example: 2020-07-03
+        type: date-only
+      radnikID:
+        example: 1
+        type: number
+        format: int
+      porudzbinaID:
+        example: 1
+        type: number
+        format: int
+  Porudzbina:
+    properties:
+      porudzbinaID?:
+        example: 1
+        type: number
+        format: int
+      kupacID:
+        example: 1
+        type: number
+        format: int
+      brojZaPracenje:
+        example: 589364125
+        type: number
+        maximum: 999999999
+        format: long
+      datumPorudzbine:
+        example: 2020-05-03
+        type: date-only
+      datum:
+        example: 2020-07-03
+        type: date-only
+      stanje:
+        example: preuzeto
+        type: string
+  Radnik:
+    properties:
+      radnikID?:
+        example: 1
+        type: number
+        format: int
+      brojLicneKarte:
+        example: 5968435
+        type: number
+        format: long
+      username:
+        example: Radnik-Dragica
+        type: string
+      password:
+        example: Dragica24688
+        type: string
+      email:
+        example: Example
+        type: string
+      roleID:
+        example: 1
+        type: number
+        format: int
+  Artikl:
+    properties:
+      artiklID?:
+        example: 1
+        type: number
+        format: int
+      velicinaID:
+        example: 1
+        type: number
+        format: int
+      barKodID:
+        example: 1
+        type: number
+        format: int
+      dostupno:
+        example: true
+        type: boolean
+      cena:
+        example: 100
+        type: number
+        format: double
+      modelID:
+        example: 1
+        type: number
+        format: int
+      markaID:
+        example: 1
+        type: number
+        format: int
+      tip:
+        example: zenski
+        type: string
+/Login:
+  get:
+    headers:
+      email:
+        example: Example
+        type: string
+      password:
+        example: Example
+        type: string
+    responses:
+      "200":
+        description: User successfully logged in.
+      "400":
+        description: "Invalid credentials "
+/Artikl:
+  get:
+    responses:
+      "200":
+        body:
+          application/json:
+            items:
+              type: Artikl
+  post:
+    responses:
+      "400": {}
+      "201":
+        description: Artikl added
+    body:
+      application/json:
+        type: Artikl
+/Kupac:
+  get:
+    responses:
+      "200":
+        body:
+          items:
+            type: Kupac
+    queryParameters:
+      username?:
+        example: Example
+        type: string
+      roleID?:
+        example: 1
+        type: number
+        format: int
+  post:
+    responses:
+      "201":
+        description: Kupac added
+      "400": {}
+    body:
+      application/json:
+        type: Kupac
+/Marka:
+  get:
+    responses:
+      "200":
+        body:
+          items:
+            type: Marka
+  post:
+    body:
+      application/json:
+        type: Marka
+    responses:
+      "400": {}
+      "201":
+        description: Marka added
+/Model:
+  get:
+    responses:
+      "200":
+        body:
+          application/json:
+            items:
+              type: Model
+  post:
+    body:
+      application/json:
+        type: Model
+    responses:
+      "201":
+        description: Model added
+      "400": {}
+/Porudzbina:
+  get:
+    responses:
+      "200":
+        body:
+          application/json:
+            items:
+              type: Porudzbina
+    queryParameters:
+      brojZaPracenje?:
+        example: 589364125
+        type: number
+        maximum: 999999999
+        format: int
+      kupacID?:
+        example: 1
+        type: number
+        format: int
+  post:
+    responses:
+      "400": {}
+      "201":
+        description: Porudzbina added
+    body:
+      application/json:
+        type: Porudzbina
+/Racun:
+  get:
+    responses:
+      "200":
+        body:
+          items:
+            type: Racun
+  post:
+    responses:
+      "201":
+        description: Racun added
+      "400": {}
+    body:
+      application/json:
+        type: Racun
+/Radnik:
+  get:
+    responses:
+      "200":
+        body:
+          application/json:
+            items:
+              type: Radnik
+    queryParameters:
+      username?:
+        example: Example
+        type: string
+      roleID?:
+        example: Example
+        type: string
+  post:
+    responses:
+      "201":
+        description: Radnk added
+      "400": {}
+    body:
+      application/json:
+        type: Radnik
+/velicina:
+  get:
+    securedBy: []
+    responses:
+      "200":
+        body:
+          application/json:
+            items:
+              type: Velicina
+  post:
+    body:
+      application/json:
+        type: Velicina
+    securedBy: []
+    responses:
+      "400": {}
+      "201":
+        description: velicina added
+/PorudzbinaArtikl:
+  get:
+    responses:
+      "200":
+        body:
+          items:
+            type: PorudzbinaArtikl
+  post:
+    body:
+      type: PorudzbinaArtikl
+    responses:
+      "201":
+        description: PorudzbinaArtikl created
+      "400": {}
+/barkod:
+  get:
+    securedBy: []
+    responses:
+      "200":
+        body:
+          application/json:
+            items:
+              type: BarKod
+  post:
+    body:
+      application/json:
+        type: BarKod
+    responses:
+      "201":
+        description: Barcode creted
+      "400":
+        description: Bad request
+/velicina/{velicinaID}:
+  get:
+    responses:
+      "200":
+        body:
+          application/json:
+            type: Velicina
+      "404": {}
+  put:
+    body:
+      application/json:
+        type: Velicina
+    responses:
+      "201":
+        description: Velicina updated
+      "404": {}
+  delete:
+    responses:
+      "200":
+        description: velicina deleted
+      "404": {}
+/barkod/{barkodID}:
+  get:
+    responses:
+      "200":
+        body:
+          application/json:
+            type: BarKod
+      "404": {}
+  put:
+    body:
+      application/json:
+        type: BarKod
+    responses:
+      "200":
+        description: Barcode updated
+      "404": {}
+  delete:
+    responses:
+      "200": {}
+      "404": {}
+/Artikl/{artiklID}:
+  get:
+    responses:
+      "200":
+        body:
+          application/json:
+            type: Artikl
+      "404": {}
+  put:
+    responses:
+      "200":
+        description: Artikl updated
+      "404": {}
+    body:
+      application/json:
+        type: Artikl
+  delete:
+    responses:
+      "200":
+        description: Artikl deleted
+      "404": {}
+/Kupac/{kupacID}:
+  get:
+    responses:
+      "200":
+        body:
+          type: Kupac
+      "404": {}
+  put:
+    responses:
+      "200":
+        description: Kupac updated
+      "404": {}
+    body:
+      application/json:
+        type: Kupac
+  delete:
+    responses:
+      "200":
+        description: Kupac deleted
+      "404": {}
+/Marka/{markaID}:
+  get:
+    responses:
+      "200":
+        body:
+          application/json:
+            type: Marka
+      "404": {}
+  put:
+    body:
+      application/json:
+        type: Marka
+    responses:
+      "200":
+        description: Marka updated
+      "404": {}
+  delete:
+    responses:
+      "200":
+        description: Marka deleted
+      "404": {}
+/Model/{modelID}:
+  get:
+    responses:
+      "200":
+        body:
+          application/json:
+            type: Model
+      "404": {}
+  put:
+    body:
+      application/json:
+        type: Model
+    responses:
+      "200":
+        description: Model updated
+      "404": {}
+  delete:
+    responses:
+      "200":
+        description: Model deleted
+      "404": {}
+/Porudzbina/{porudzbinaID}:
+  get:
+    responses:
+      "200":
+        body:
+          application/json:
+            type: Porudzbina
+      "404": {}
+  put:
+    responses:
+      "200":
+        description: Poudzbina updated
+      "404": {}
+    body:
+      application/json:
+        type: Porudzbina
+  delete:
+    responses:
+      "200":
+        description: Porudzina deleted
+      "404": {}
+/Racun/{racunID}:
+  get:
+    responses:
+      "200":
+        body:
+          application/json:
+            type: Racun
+      "404": {}
+  put:
+    responses:
+      "200":
+        description: Racun updated
+      "404": {}
+    body:
+      application/json:
+        type: Racun
+  delete:
+    responses:
+      "200":
+        description: Racun deleted
+      "404": {}
+/Radnik/{radnikID}:
+  get:
+    responses:
+      "200":
+        body:
+          application/json:
+            type: Radnik
+      "404": {}
+  put:
+    responses:
+      "200":
+        description: Radnik updated
+      "404": {}
+    body:
+      application/json:
+        type: Radnik
+  delete:
+    responses:
+      "200":
+        description: Radnik deleted
+      "404": {}
+/PorudzbinaArtikl/{porudzbinaID}:
+  get:
+    responses:
+      "200":
+        body:
+          type: PorudzbinaArtikl
+      "404": {}
+  delete:
+    responses:
+      "200":
+        description: PorudzbinaArtikl deleted
+      "404": {}
